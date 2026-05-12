@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from array import array
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
@@ -24,7 +25,7 @@ def flatten_message_data(msg: Any) -> dict[str, Any]:
             nested_data = flatten_message_data(field_value)
             for nested_key, nested_val in nested_data.items():
                 data[f"{field_name}.{nested_key}"] = nested_val
-        elif isinstance(field_value, (list, tuple)):
+        elif isinstance(field_value, (array, list, tuple)):
             for index, item in enumerate(field_value):
                 if hasattr(item, "__slots__") or isinstance(item, Mapping):
                     nested_data = flatten_message_data(item)
@@ -44,4 +45,3 @@ def safe_topic_filename(topic: str) -> str:
     clean_name = topic.replace("/", "_").replace("~", "_").lstrip("_")
     clean_name = Path(clean_name).name
     return clean_name or "unknown_topic"
-

@@ -16,6 +16,7 @@ class SensorType(StrEnum):
 
 TIMESTAMP_COLUMN = "timestamp"
 READABLE_TIME_COLUMN = "readable_time"
+BAG_TIMESTAMP_COLUMN = "bag_timestamp"
 
 GNSS_COLUMNS = [
     "timestamp",
@@ -36,6 +37,7 @@ GNSS_COLUMNS = [
 IMU_COLUMNS = [
     "timestamp",
     "readable_time",
+    "bag_timestamp",
     "accel_x",
     "accel_y",
     "accel_z",
@@ -58,4 +60,3 @@ INS_COLUMNS = [
     "vel_z",
     "ins_status",
 ]
-

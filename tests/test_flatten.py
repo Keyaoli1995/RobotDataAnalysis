@@ -1,3 +1,5 @@
+from array import array
+
 from robot_data_analysis.ros.flatten import flatten_message_data, safe_topic_filename
 
 
@@ -36,7 +38,16 @@ def test_flatten_message_data_expands_nested_slots_and_arrays():
     }
 
 
+def test_flatten_message_data_expands_python_array_values():
+    flattened = flatten_message_data({"accel": array("f", [1.0, 2.0, 3.0])})
+
+    assert flattened == {
+        "accel[0]": 1.0,
+        "accel[1]": 2.0,
+        "accel[2]": 3.0,
+    }
+
+
 def test_safe_topic_filename_removes_leading_slashes():
     assert safe_topic_filename("/novatel/oem7/bestgnsspos") == "novatel_oem7_bestgnsspos"
     assert safe_topic_filename("/") == "unknown_topic"
-
