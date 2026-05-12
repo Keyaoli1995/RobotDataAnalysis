@@ -6,12 +6,12 @@ Build an offline robot experiment data analysis library. The library should load
 
 ## Current Context
 
-The project currently contains two scripts:
+The project originally started with two standalone scripts:
 
-- `bag_parse/ros2bag_data_parse.py`: reads ROS2 bag files, flattens ROS messages, and writes one CSV per topic.
-- `bag_parse/parse_bestgnsspos.py`: reads a NovAtel `bestgnsspos` CSV and extracts useful GNSS fields.
+- one script for reading ROS2 bag files, flattening ROS messages, and writing one CSV per topic.
+- one script for reading a NovAtel `bestgnsspos` CSV and extracting useful GNSS fields.
 
-The first version should preserve these capabilities while moving reusable logic into a package named `robot_data_analysis`.
+Those scripts have been retired from the main project layout. Reusable logic now lives in `robot_data_analysis`, and IDE-oriented execution lives in `scripts`.
 
 ## Scope
 
@@ -105,4 +105,3 @@ ROS2 bag export should remain import-safe when ROS2 packages are unavailable. Ru
 ## Git Strategy
 
 Initialize this directory as a Git repository. Commit the design and plan first, then commit the first package implementation after verification.
-

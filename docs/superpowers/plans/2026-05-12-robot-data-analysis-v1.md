@@ -4,7 +4,7 @@
 
 **Goal:** Create the first importable version of the offline robot data analysis library.
 
-**Architecture:** Move reusable logic from scripts into a `robot_data_analysis` package while keeping compatibility wrappers in `bag_parse`. The first implementation keeps ROS2 dependencies lazy so CSV analysis works in the `data_analysis` conda environment.
+**Architecture:** Move reusable logic from scripts into a `robot_data_analysis` package and keep executable workflows in `scripts`. The first implementation keeps ROS2 dependencies lazy so CSV analysis works in the `data_analysis` conda environment.
 
 **Tech Stack:** Python 3.12, pandas, numpy, matplotlib-ready package layout, pytest, argparse.
 
@@ -25,8 +25,7 @@
 - Create `robot_data_analysis/sensors/gnss/novatel.py`: NovAtel `bestgnsspos` parser.
 - Create placeholder packages for `imu`, `ins`, and `visualization` so future modules have stable locations.
 - Create `robot_data_analysis/cli/main.py`: `summary`, `parse-bestgnsspos`, and `export-bag` commands.
-- Modify `bag_parse/ros2bag_data_parse.py`: delegate to package exporter.
-- Modify `bag_parse/parse_bestgnsspos.py`: delegate to package parser.
+- Use `scripts/run_export_bag.py` for IDE-oriented bag export.
 - Create tests under `tests/`.
 
 ## Tasks
@@ -64,4 +63,3 @@
 - [ ] Run `python -m robot_data_analysis.cli.main summary .`.
 - [ ] Check `git status --short`.
 - [ ] Commit the first version with a concise message.
-
