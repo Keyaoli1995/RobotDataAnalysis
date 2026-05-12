@@ -1,0 +1,7 @@
+{
+  "bag_path": "/home/keyaoli/Data/example/rosbag2_2026_01_01-00_00_00",
+  "output_dir": "/home/keyaoli/Data/example/rosbag2_2026_01_01-00_00_00/csv_output",
+  "ros_setup": "/opt/ros/humble/setup.bash",
+  "workspace_setup": "/home/keyaoli/ros2_ws/install/setup.bash",
+  "python_executable": "/usr/bin/python3"
+}
