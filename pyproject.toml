@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "robot-data-analysis"
+version = "0.1.0"
+description = "Offline robot experiment data analysis utilities for ROS2 bag exports and sensor CSV files."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "pandas",
+  "numpy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest"]
+plot = ["matplotlib", "seaborn", "plotly"]
+
+[project.scripts]
+rda = "robot_data_analysis.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["robot_data_analysis*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
