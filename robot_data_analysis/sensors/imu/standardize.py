@@ -73,6 +73,15 @@ def normalize_imu_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     return normalized[IMU_COLUMNS].sort_values(TIMESTAMP_COLUMN).reset_index(drop=True)
 
 
+def summarize_imu_axes(df: pd.DataFrame) -> dict[str, dict[str, float]]:
+    """Return mean acceleration and gyroscope values for a standard IMU DataFrame."""
+
+    return {
+        "accel_mean": _axis_means(df, "accel"),
+        "gyro_mean": _axis_means(df, "gyro"),
+    }
+
+
 def _preferred_timestamp_ns(df: pd.DataFrame) -> pd.Series:
     for sec_col, nsec_col in HEADER_TIME_COLUMN_GROUPS:
         if sec_col in df.columns and nsec_col in df.columns:
@@ -108,3 +117,10 @@ def _find_column_group(
         if all(column in df.columns for column in columns):
             return columns
     raise MissingColumnsError([f"{group_name}: {' or '.join(group)}" for group in column_groups])
+
+
+def _axis_means(df: pd.DataFrame, prefix: str) -> dict[str, float]:
+    return {
+        axis: float(pd.to_numeric(df[f"{prefix}_{axis}"], errors="coerce").mean())
+        for axis in ("x", "y", "z")
+    }

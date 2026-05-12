@@ -1,6 +1,6 @@
 import pandas as pd
 
-from robot_data_analysis.sensors.imu.standardize import normalize_imu_dataframe
+from robot_data_analysis.sensors.imu.standardize import normalize_imu_dataframe, summarize_imu_axes
 
 
 def test_normalize_imu_dataframe_uses_header_time_and_preserves_bag_timestamp():
@@ -77,3 +77,31 @@ def test_normalize_imu_dataframe_falls_back_to_bag_timestamp_without_header_time
 
     assert normalized.loc[0, "timestamp"] == 100
     assert normalized.loc[0, "bag_timestamp"] == 100
+
+
+def test_summarize_imu_axes_reports_accel_and_gyro_axis_means():
+    df = pd.DataFrame(
+        {
+            "accel_x": [1.0, 3.0],
+            "accel_y": [2.0, 4.0],
+            "accel_z": [3.0, 5.0],
+            "gyro_x": [0.1, 0.3],
+            "gyro_y": [0.2, 0.4],
+            "gyro_z": [0.3, 0.5],
+        }
+    )
+
+    summary = summarize_imu_axes(df)
+
+    assert summary == {
+        "accel_mean": {
+            "x": 2.0,
+            "y": 3.0,
+            "z": 4.0,
+        },
+        "gyro_mean": {
+            "x": 0.2,
+            "y": 0.30000000000000004,
+            "z": 0.4,
+        },
+    }

@@ -53,6 +53,7 @@ def test_compare_accel_norms_aligns_by_header_timestamp():
     assert list(comparison.columns) == [
         "time_ns",
         "time_seconds",
+        "readable_time",
         "rawimusx_accel_norm",
         "tcp_raw_imu_accel_norm",
         "accel_norm_delta",

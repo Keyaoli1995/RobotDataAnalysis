@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from robot_data_analysis.core.errors import MissingColumnsError
-from robot_data_analysis.core.schema import TIMESTAMP_COLUMN
+from robot_data_analysis.core.schema import READABLE_TIME_COLUMN, TIMESTAMP_COLUMN
 from robot_data_analysis.sensors.imu.standardize import parse_imu_csv
 
 ACCEL_NORM_COLUMN = "accel_norm"
@@ -38,6 +38,7 @@ def prepare_accel_norm_series(
         return result[[TIME_NS_COLUMN, TIME_SECONDS_COLUMN, f"{label}_{ACCEL_NORM_COLUMN}"]]
 
     result[TIME_SECONDS_COLUMN] = (result[TIME_NS_COLUMN] - result[TIME_NS_COLUMN].iloc[0]) / 1_000_000_000
+    result[READABLE_TIME_COLUMN] = pd.to_datetime(result[TIME_NS_COLUMN], unit="ns")
     return result[[TIME_NS_COLUMN, TIME_SECONDS_COLUMN, f"{label}_{ACCEL_NORM_COLUMN}"]]
 
 
@@ -63,9 +64,20 @@ def compare_accel_norms(
         tolerance=tolerance_ns,
     ).dropna(subset=[right_norm_col])
 
+    aligned[READABLE_TIME_COLUMN] = pd.to_datetime(aligned[TIME_NS_COLUMN], unit="ns")
     aligned["accel_norm_delta"] = aligned[left_norm_col] - aligned[right_norm_col]
     aligned["abs_accel_norm_delta"] = aligned["accel_norm_delta"].abs()
-    return aligned.reset_index(drop=True)
+    return aligned[
+        [
+            TIME_NS_COLUMN,
+            TIME_SECONDS_COLUMN,
+            READABLE_TIME_COLUMN,
+            left_norm_col,
+            right_norm_col,
+            "accel_norm_delta",
+            "abs_accel_norm_delta",
+        ]
+    ].reset_index(drop=True)
 
 
 def compare_accel_norm_csvs(
