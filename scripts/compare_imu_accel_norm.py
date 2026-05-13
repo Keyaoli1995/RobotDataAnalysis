@@ -15,6 +15,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from robot_data_analysis.analysis.quality import summarize_time_intervals  # noqa: E402
 from robot_data_analysis.sensors.imu.accel_compare import (  # noqa: E402
     compare_accel_norms,
+    compare_imu_axes,
     summarize_accel_norm_comparison,
 )
 from robot_data_analysis.sensors.imu.standardize import parse_imu_csv, summarize_imu_axes  # noqa: E402
@@ -23,6 +24,7 @@ from robot_data_analysis.visualization.imu import (  # noqa: E402
     plot_accel_norm_comparison,
     plot_imu_axes_outputs,
     plot_interactive_accel_norm_comparison,
+    plot_interactive_imu_axes_comparison,
     plot_interactive_time_intervals,
 )
 
@@ -32,6 +34,7 @@ DEFAULT_OUTPUT = Path("imu_accel_norm_comparison.png")
 DEFAULT_HTML_OUTPUT = Path("imu_accel_norm_comparison.html")
 DEFAULT_RAWIMUSX_AXES_OUTPUT = Path("rawimusx_imu_axes.html")
 DEFAULT_TCP_RAW_IMU_AXES_OUTPUT = Path("tcp_raw_imu_imu_axes.html")
+DEFAULT_IMU_AXES_COMPARISON_OUTPUT = Path("imu_axes_comparison.html")
 DEFAULT_TIME_INTERVALS_OUTPUT = Path("imu_time_intervals.html")
 DEFAULT_CONFIG_PATH = PROJECT_ROOT / "configs" / "local_run.json"
 
@@ -46,6 +49,7 @@ class ImuCompareRunPaths:
     html_output: Path
     rawimusx_axes_output: Path
     tcp_raw_imu_axes_output: Path
+    imu_axes_comparison_output: Path
     time_intervals_output: Path
     aligned_output: Path | None
 
@@ -93,6 +97,11 @@ def build_parser() -> argparse.ArgumentParser:
         help="interactive TCP raw IMU six-axis output plot path",
     )
     parser.add_argument(
+        "--imu-axes-comparison-output",
+        default=None,
+        help="interactive two-IMU six-axis comparison plot path",
+    )
+    parser.add_argument(
         "--time-intervals-output",
         default=None,
         help="interactive timestamp interval comparison plot path",
@@ -133,6 +142,11 @@ def resolve_run_paths(args: argparse.Namespace) -> ImuCompareRunPaths:
         if args.tcp_raw_imu_axes_output
         else base_dir / DEFAULT_TCP_RAW_IMU_AXES_OUTPUT
     )
+    imu_axes_comparison_output = (
+        Path(args.imu_axes_comparison_output)
+        if args.imu_axes_comparison_output
+        else base_dir / DEFAULT_IMU_AXES_COMPARISON_OUTPUT
+    )
     time_intervals_output = (
         Path(args.time_intervals_output) if args.time_intervals_output else base_dir / DEFAULT_TIME_INTERVALS_OUTPUT
     )
@@ -145,6 +159,7 @@ def resolve_run_paths(args: argparse.Namespace) -> ImuCompareRunPaths:
         html_output=html_output,
         rawimusx_axes_output=rawimusx_axes_output,
         tcp_raw_imu_axes_output=tcp_raw_imu_axes_output,
+        imu_axes_comparison_output=imu_axes_comparison_output,
         time_intervals_output=time_intervals_output,
         aligned_output=aligned_output,
     )
@@ -209,6 +224,14 @@ def main(argv: list[str] | None = None) -> int:
         right_label="tcp_raw_imu",
         tolerance_ns=args.tolerance_ns,
     )
+    axes_comparison = compare_imu_axes(
+        rawimusx,
+        tcp_raw_imu,
+        axes=imu_axes,
+        left_label="rawimusx",
+        right_label="tcp_raw_imu",
+        tolerance_ns=args.tolerance_ns,
+    )
     plot_path = plot_accel_norm_comparison(
         comparison,
         run_paths.output,
@@ -233,6 +256,13 @@ def main(argv: list[str] | None = None) -> int:
         axes=imu_axes,
         title="TCP raw IMU outputs",
     )
+    imu_axes_comparison_plot_path = plot_interactive_imu_axes_comparison(
+        axes_comparison,
+        run_paths.imu_axes_comparison_output,
+        axes=imu_axes,
+        left_label="rawimusx",
+        right_label="tcp_raw_imu",
+    )
     time_intervals_plot_path = plot_interactive_time_intervals(
         rawimusx,
         tcp_raw_imu,
@@ -250,6 +280,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"wrote interactive plot: {html_plot_path}")
     print(f"wrote rawimusx IMU axes plot: {rawimusx_axes_plot_path}")
     print(f"wrote tcp_raw_imu IMU axes plot: {tcp_raw_imu_axes_plot_path}")
+    print(f"wrote IMU axes comparison plot: {imu_axes_comparison_plot_path}")
     print(f"wrote IMU time intervals plot: {time_intervals_plot_path}")
     output_summary = build_output_summary(
         summarize_accel_norm_comparison(comparison),

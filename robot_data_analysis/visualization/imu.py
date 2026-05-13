@@ -237,6 +237,87 @@ def plot_imu_axes_outputs(
     return destination
 
 
+def plot_interactive_imu_axes_comparison(
+    comparison: pd.DataFrame,
+    output_path: str | Path,
+    axes: list[str] | tuple[str, ...] | None = None,
+    left_label: str = "rawimusx",
+    right_label: str = "tcp_raw_imu",
+) -> Path:
+    """Write an interactive HTML plot comparing two aligned six-axis IMU outputs."""
+
+    from plotly.subplots import make_subplots
+    import plotly.graph_objects as go
+
+    axis_columns = resolve_imu_axes(axes)
+    _require_imu_axes_comparison_columns(comparison, axis_columns, left_label, right_label)
+
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    readable_text = pd.to_datetime(comparison["readable_time"]).dt.strftime("%Y-%m-%d %H:%M:%S.%f").str[:-3]
+    customdata = pd.DataFrame({"readable_time": readable_text})
+
+    fig = make_subplots(
+        rows=len(axis_columns),
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=min(0.04, 0.2 / max(len(axis_columns), 1)),
+        subplot_titles=axis_columns,
+    )
+    hovertemplate = "elapsed=%{x:.6f} s<br>time=%{customdata[0]}<br>value=%{y:.6f}<extra></extra>"
+
+    for row_index, axis_column in enumerate(axis_columns, start=1):
+        left_col = f"{left_label}_{axis_column}"
+        right_col = f"{right_label}_{axis_column}"
+        fig.add_trace(
+            go.Scatter(
+                x=comparison["time_seconds"],
+                y=comparison[left_col],
+                customdata=customdata,
+                mode="lines",
+                name=left_label,
+                legendgroup=left_label,
+                showlegend=row_index == 1,
+                hovertemplate=hovertemplate,
+            ),
+            row=row_index,
+            col=1,
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=comparison["time_seconds"],
+                y=comparison[right_col],
+                customdata=customdata,
+                mode="lines",
+                name=right_label,
+                legendgroup=right_label,
+                showlegend=row_index == 1,
+                hovertemplate=hovertemplate,
+            ),
+            row=row_index,
+            col=1,
+        )
+        fig.update_yaxes(title_text=axis_column, row=row_index, col=1)
+
+    tick_values, tick_labels = build_time_tick_labels(comparison, line_break="<br>")
+    fig.update_xaxes(
+        title_text="elapsed time / readable timestamp",
+        tickmode="array",
+        tickvals=tick_values,
+        ticktext=tick_labels,
+        row=len(axis_columns),
+        col=1,
+    )
+    fig.update_layout(
+        title="IMU six-axis output comparison",
+        hovermode="x unified",
+        height=max(420, 190 * len(axis_columns)),
+    )
+    fig.write_html(destination, include_plotlyjs=True)
+    return destination
+
+
 def build_time_interval_series(imu_data: pd.DataFrame, label: str) -> pd.DataFrame:
     """Build consecutive timestamp interval rows for plotting."""
 
@@ -322,6 +403,26 @@ def _tick_indices(row_count: int, max_ticks: int) -> list[int]:
 def _require_imu_plot_columns(imu_data: pd.DataFrame, axes: list[str]) -> None:
     required_columns = [TIMESTAMP_COLUMN, "readable_time", *axes]
     missing_columns = [column for column in required_columns if column not in imu_data.columns]
+    if missing_columns:
+        raise MissingColumnsError(missing_columns)
+
+
+def _require_imu_axes_comparison_columns(
+    comparison: pd.DataFrame,
+    axes: list[str],
+    left_label: str,
+    right_label: str,
+) -> None:
+    required_columns = [
+        "time_seconds",
+        "readable_time",
+        *[
+            prefixed_axis
+            for axis in axes
+            for prefixed_axis in (f"{left_label}_{axis}", f"{right_label}_{axis}")
+        ],
+    ]
+    missing_columns = [column for column in required_columns if column not in comparison.columns]
     if missing_columns:
         raise MissingColumnsError(missing_columns)
 

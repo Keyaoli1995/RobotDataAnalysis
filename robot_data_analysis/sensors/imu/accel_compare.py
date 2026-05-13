@@ -14,6 +14,7 @@ from robot_data_analysis.sensors.imu.standardize import parse_imu_csv
 ACCEL_NORM_COLUMN = "accel_norm"
 TIME_NS_COLUMN = "time_ns"
 TIME_SECONDS_COLUMN = "time_seconds"
+DEFAULT_IMU_AXES = ("accel_x", "accel_y", "accel_z", "gyro_x", "gyro_y", "gyro_z")
 
 
 def prepare_accel_norm_series(
@@ -80,6 +81,72 @@ def compare_accel_norms(
     ].reset_index(drop=True)
 
 
+def prepare_imu_axes_series(
+    df: pd.DataFrame,
+    label: str,
+    axes: list[str] | tuple[str, ...] | None = None,
+) -> pd.DataFrame:
+    """Build a labeled multi-axis IMU time series from a standard IMU DataFrame."""
+
+    axis_columns = list(axes) if axes else list(DEFAULT_IMU_AXES)
+    _require_standard_imu_columns(df, axis_columns)
+
+    time_values = pd.to_numeric(df[TIMESTAMP_COLUMN], errors="coerce")
+    axis_values = df.loc[:, axis_columns].apply(pd.to_numeric, errors="coerce")
+
+    result = pd.DataFrame({TIME_NS_COLUMN: time_values})
+    for axis_column in axis_columns:
+        result[f"{label}_{axis_column}"] = axis_values[axis_column]
+
+    value_columns = [f"{label}_{axis_column}" for axis_column in axis_columns]
+    result = result.dropna(subset=[TIME_NS_COLUMN, *value_columns])
+    result = result.sort_values(TIME_NS_COLUMN).reset_index(drop=True)
+    if result.empty:
+        result[TIME_SECONDS_COLUMN] = []
+        result[READABLE_TIME_COLUMN] = []
+        return result[[TIME_NS_COLUMN, TIME_SECONDS_COLUMN, READABLE_TIME_COLUMN, *value_columns]]
+
+    result[TIME_SECONDS_COLUMN] = (result[TIME_NS_COLUMN] - result[TIME_NS_COLUMN].iloc[0]) / 1_000_000_000
+    result[READABLE_TIME_COLUMN] = pd.to_datetime(result[TIME_NS_COLUMN], unit="ns")
+    return result[[TIME_NS_COLUMN, TIME_SECONDS_COLUMN, READABLE_TIME_COLUMN, *value_columns]]
+
+
+def compare_imu_axes(
+    left_df: pd.DataFrame,
+    right_df: pd.DataFrame,
+    axes: list[str] | tuple[str, ...] | None = None,
+    left_label: str = "rawimusx",
+    right_label: str = "tcp_raw_imu",
+    tolerance_ns: int | None = None,
+) -> pd.DataFrame:
+    """Align two standard IMU DataFrames by nearest timestamp and compare axis outputs."""
+
+    axis_columns = list(axes) if axes else list(DEFAULT_IMU_AXES)
+    left = prepare_imu_axes_series(left_df, left_label, axis_columns)
+    right = prepare_imu_axes_series(right_df, right_label, axis_columns).drop(
+        columns=[TIME_SECONDS_COLUMN, READABLE_TIME_COLUMN]
+    )
+
+    right_value_columns = [f"{right_label}_{axis_column}" for axis_column in axis_columns]
+    aligned = pd.merge_asof(
+        left,
+        right,
+        on=TIME_NS_COLUMN,
+        direction="nearest",
+        tolerance=tolerance_ns,
+    ).dropna(subset=right_value_columns)
+
+    output_columns = [TIME_NS_COLUMN, TIME_SECONDS_COLUMN, READABLE_TIME_COLUMN]
+    for axis_column in axis_columns:
+        left_col = f"{left_label}_{axis_column}"
+        right_col = f"{right_label}_{axis_column}"
+        delta_col = f"{axis_column}_delta"
+        aligned[delta_col] = aligned[left_col] - aligned[right_col]
+        output_columns.extend([left_col, right_col, delta_col])
+
+    return aligned[output_columns].reset_index(drop=True)
+
+
 def compare_accel_norm_csvs(
     left_csv: str | Path,
     right_csv: str | Path,
@@ -119,8 +186,8 @@ def summarize_accel_norm_comparison(comparison: pd.DataFrame) -> dict[str, float
     }
 
 
-def _require_standard_imu_columns(df: pd.DataFrame) -> None:
-    required_columns = [TIMESTAMP_COLUMN, "accel_x", "accel_y", "accel_z"]
+def _require_standard_imu_columns(df: pd.DataFrame, axes: list[str] | tuple[str, ...] | None = None) -> None:
+    required_columns = [TIMESTAMP_COLUMN, *(axes or ("accel_x", "accel_y", "accel_z"))]
     missing_columns = [column for column in required_columns if column not in df.columns]
     if missing_columns:
         raise MissingColumnsError(missing_columns)

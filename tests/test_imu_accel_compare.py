@@ -4,6 +4,7 @@ import pandas as pd
 from robot_data_analysis.sensors.imu.accel_compare import (
     compare_accel_norm_csvs,
     compare_accel_norms,
+    compare_imu_axes,
     prepare_accel_norm_series,
 )
 
@@ -62,6 +63,55 @@ def test_compare_accel_norms_aligns_by_header_timestamp():
     np.testing.assert_allclose(comparison["rawimusx_accel_norm"], [13.0, 13.0])
     np.testing.assert_allclose(comparison["tcp_raw_imu_accel_norm"], [12.0, 10.0])
     np.testing.assert_allclose(comparison["accel_norm_delta"], [1.0, 3.0])
+
+
+def test_compare_imu_axes_aligns_six_axis_outputs_by_header_timestamp():
+    rawimusx = pd.DataFrame(
+        {
+            "timestamp": [10_000_000_000, 10_000_000_100],
+            "accel_x": [1.0, 2.0],
+            "accel_y": [3.0, 4.0],
+            "accel_z": [5.0, 6.0],
+            "gyro_x": [7.0, 8.0],
+            "gyro_y": [9.0, 10.0],
+            "gyro_z": [11.0, 12.0],
+        }
+    )
+    tcp_raw_imu = pd.DataFrame(
+        {
+            "timestamp": [10_000_000_005, 10_000_000_105],
+            "accel_x": [0.5, 1.5],
+            "accel_y": [2.5, 3.5],
+            "accel_z": [4.5, 5.5],
+            "gyro_x": [6.5, 7.5],
+            "gyro_y": [8.5, 9.5],
+            "gyro_z": [10.5, 11.5],
+        }
+    )
+
+    comparison = compare_imu_axes(
+        rawimusx,
+        tcp_raw_imu,
+        axes=["accel_x", "gyro_z"],
+        left_label="rawimusx",
+        right_label="tcp_raw_imu",
+    )
+
+    assert list(comparison.columns) == [
+        "time_ns",
+        "time_seconds",
+        "readable_time",
+        "rawimusx_accel_x",
+        "tcp_raw_imu_accel_x",
+        "accel_x_delta",
+        "rawimusx_gyro_z",
+        "tcp_raw_imu_gyro_z",
+        "gyro_z_delta",
+    ]
+    np.testing.assert_allclose(comparison["rawimusx_accel_x"], [1.0, 2.0])
+    np.testing.assert_allclose(comparison["tcp_raw_imu_accel_x"], [0.5, 1.5])
+    np.testing.assert_allclose(comparison["accel_x_delta"], [0.5, 0.5])
+    np.testing.assert_allclose(comparison["gyro_z_delta"], [0.5, 0.5])
 
 
 def test_compare_accel_norm_csvs_normalizes_exported_novatel_column_names(tmp_path):
